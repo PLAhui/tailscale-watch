@@ -1,0 +1,24 @@
+# ---- 运行时数据（含个人网络信息，绝不提交） ----
+netcheck-log*.csv
+ai-chat.json
+ai-analysis.md
+.panel-port
+var/
+
+# ---- 密钥与凭据 ----
+app/.deepseek_key
+app/.deepseek_model
+.env
+*.key
+
+# ---- 日志 ----
+*.log
+*.out
+*.err
+
+# ---- 系统与编辑器 ----
+.DS_Store
+__pycache__/
+*.py[cod]
+.idea/
+.vscode/
