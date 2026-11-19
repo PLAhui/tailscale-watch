@@ -1,5 +1,10 @@
 # Tailscale Watch
 
+[![release](https://img.shields.io/github/v/release/PLAhui/tailscale-watch)](https://github.com/PLAhui/tailscale-watch/releases)
+[![license](https://img.shields.io/badge/license-MIT-0d9488)](LICENSE)
+[![platform](https://img.shields.io/badge/platform-macOS-lightgrey)](#已知限制)
+[![python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org)
+
 一个本地运行的 Tailscale / 家宽链路监控面板：每 60 秒采样一次，把「到路由器」「到国内出口」「到对端设备」三段延迟 + 「直连还是走中继」落成 CSV，再用一个网页把"到底哪一环慢"讲清楚。
 
 给普通人看的，不是网工工具。面板只有四块，第一眼就是一句人话结论和三个大数字。
