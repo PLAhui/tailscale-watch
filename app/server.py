@@ -18,6 +18,36 @@ APP_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(APP_DIR)
 LOG = os.path.join(ROOT_DIR, "netcheck-log.csv")
 WATCH = os.path.join(ROOT_DIR, "netcheck-watch.sh")
+CONFIG = os.path.join(ROOT_DIR, "config.env")
+
+
+def _load_config():
+    """读取 config.env（键=值，# 注释）。仓库里只提交 config.env.example，
+    真实的对端地址、网关等信息留在本机，不进版本库。"""
+    cfg = {
+        "PEER_HOST": "",            # 对端 Tailscale 地址（IP 或 MagicDNS 名）
+        "PEER_NAME": "对端设备",
+        "SELF_NAME": "",            # 留空则用系统 hostname
+        "ALI_HOST": "223.5.5.5",
+        "GATEWAY_FALLBACK": "",
+    }
+    if os.path.exists(CONFIG):
+        try:
+            for line in open(CONFIG, encoding="utf-8"):
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                cfg[k.strip()] = v.strip().strip('"').strip("'")
+        except Exception:
+            pass
+    for k in list(cfg):
+        if os.environ.get(k):
+            cfg[k] = os.environ[k]
+    return cfg
+
+
+CFG = _load_config()
 
 FIELDS = ["time", "nearest_derp", "derp_fastest", "derp_fastest_ms", "derp_reachable",
           "ali_loss", "ali_avg", "ali_max", "macmini_loss", "macmini_avg", "macmini_max",
@@ -129,7 +159,7 @@ def summarize(rows):
         else:
             conclusions.append("国内基准正常（阿里 DNS 平均 %.0fms）" % a)
     if m is not None:
-        conclusions.append("到 mac-mini 平均 %.0fms" % m)
+        conclusions.append("到 %s 平均 %.0fms" % (CFG["PEER_NAME"], m))
     if d is not None and d > 150:
         conclusions.append("最近中继 %.0fms（欧美方向）" % d)
         advice.append("备用中继都在欧美：可自建国内/香港 DERP，把兜底延迟压到 100ms 内。")
@@ -161,6 +191,8 @@ def summarize(rows):
                    "avg": worst.get("macmini_avg")} if worst else None),
         "verdict": "；".join(conclusions) + "。",
         "advice": advice,
+        "self_name": _self_name(), "peer_name": CFG["PEER_NAME"],
+        "peer_host": CFG["PEER_HOST"], "ali_host": CFG["ALI_HOST"],
         "last_sample": _last_sample,
     }
 
@@ -170,11 +202,15 @@ def summarize(rows):
 _LONG = {"job": None, "lock": threading.Lock()}
 
 
+def _self_name():
+    return CFG["SELF_NAME"] or os.uname().nodename
+
+
 def _gateway_ip():
     for r in reversed(read_rows()):
         if r.get("gateway_ip"):
             return r["gateway_ip"]
-    return "192.168.66.1"
+    return CFG["GATEWAY_FALLBACK"] or "—"
 
 
 def _ping_target(target, count, interval):
@@ -230,8 +266,8 @@ def start_longping(count=40, interval=0.3):
             "done_count": 0,
             "targets": [
                 {"name": "路由器网关", "kind": "gateway", "host": gw},
-                {"name": "阿里 DNS", "kind": "ali", "host": "223.5.5.5"},
-                {"name": "mac-mini", "kind": "mini", "host": "100.116.122.19"},
+                {"name": "国内基准", "kind": "ali", "host": CFG["ALI_HOST"]},
+                {"name": CFG["PEER_NAME"], "kind": "mini", "host": CFG["PEER_HOST"]},
             ],
         }
         _LONG["job"] = job
@@ -255,18 +291,16 @@ def _ai_digest(rng="today"):
     s = summarize(rows)
     lines = []
     lines.append("窗口：%s – %s，共 %d 条采样（60 秒一条）。" % (s.get("start") or "—", s.get("end") or "—", s.get("count") or 0))
-    lines.append("设备：本机 macbook-pro（Tailscale 100.92.15.30，公网出口 171.12.68.212，中国河南电信，"
-                 "出口为 CPE，NAT 为对称型）；对端 mac-mini（100.116.122.19）；iPhone 长期离线不计入。")
-    lines.append("局域网：路由器网关 %s（主机名 nradio.in，疑似 4G/5G CPE 路由模式，NAT 对称型）；"
-                 "本机第二网卡 en6 无外网，实际走 Wi-Fi。"
-                 % _gateway_ip())
+    lines.append("设备：本机 %s；对端 %s（%s）；国内基准 %s。"
+                 % (_self_name(), CFG["PEER_NAME"], CFG["PEER_HOST"] or "未配置", CFG["ALI_HOST"]))
+    lines.append("局域网：当前网关 %s。" % _gateway_ip())
     lines.append("路径：%d 次直连 / %d 次中继；当前路径 %s（最近判定时间 %s）。"
                  % (s.get("direct") or 0, s.get("relay") or 0, s.get("path_now") or "未知", s.get("path_last_time") or "—"))
     lines.append("")
     lines.append("关键指标（P50 / 平均 / P95 / 峰值）：")
     lines.append("- 路由器网关：" + " / ".join([_n(s.get("gw_p50")), _n(s.get("gw_avg")), _n(s.get("gw_p95")), _n(s.get("gw_peak"))]))
-    lines.append("- 阿里 DNS 223.5.5.5（国内出口基准）：" + " / ".join([_n(s.get("ali_p50")), _n(s.get("ali_avg")), _n(s.get("ali_p95")), _n(s.get("ali_peak"))]))
-    lines.append("- mac-mini（Tailscale 直连）：" + " / ".join([_n(s.get("mm_p50")), _n(s.get("mm_avg")), _n(s.get("mm_p95")), _n(s.get("mm_peak"))]))
+    lines.append("- 国内基准 %s：" % CFG["ALI_HOST"]  + " / ".join([_n(s.get("ali_p50")), _n(s.get("ali_avg")), _n(s.get("ali_p95")), _n(s.get("ali_peak"))]))
+    lines.append("- %s（Tailscale 直连）：" % CFG["PEER_NAME"]  + " / ".join([_n(s.get("mm_p50")), _n(s.get("mm_avg")), _n(s.get("mm_p95")), _n(s.get("mm_peak"))]))
     lines.append("- 备用中继最快延迟：" + _n(s.get("derp_p50")) + "（区域 " + str(s.get("derp_region") or "未知") + "）")
     lines.append("")
     lines.append("抖动与丢包：峰值/平均抖动比 %s；出现丢包的采样 %s 条；中继可达数 %s–%s（低于 20 视为国际出口有丢包）；"

@@ -37,10 +37,13 @@
 git clone <repo> tailscale-watch
 cd tailscale-watch
 
-make check          # 语法自检
-make sample         # 采一条样本，生成 netcheck-log.csv
-make run            # 启动面板，浏览器打开 http://127.0.0.1:8767
+cp config.env.example config.env   # 填对端 Tailscale 地址（PEER_HOST）
+make check                         # 语法自检
+make sample                        # 采一条样本，生成 netcheck-log.csv
+make run                           # 启动面板 http://127.0.0.1:8767
 ```
+
+`config.env` 是本机私有配置（对端地址、显示名、基准目标），已在 `.gitignore` 中排除，仓库里只有示例文件。
 
 想让它常驻（开机自启、每 60 秒采样）：
 
@@ -53,14 +56,26 @@ make uninstall      # 卸载
 
 端口默认 **8767**，可用 `PANEL_PORT=9000 make run` 覆盖（改了端口记得同步 `.panel-port` 与 plist）。
 
+## 配置
+
+所有个性化项都在 `config.env`（从 `config.env.example` 复制）：
+
+| 键 | 说明 | 示例 |
+|---|---|---|
+| `PEER_HOST` | 对端设备地址（Tailscale IP 或 MagicDNS 名） | `100.64.0.2` |
+| `PEER_NAME` | 对端在界面上的显示名 | `mac-mini` |
+| `SELF_NAME` | 本机显示名，留空则用系统 hostname | `my-mac` |
+| `ALI_HOST` | 国内出口基准目标 | `223.5.5.5` |
+| `GATEWAY_FALLBACK` | 采样拿不到网关时的兜底显示 | `192.168.1.1` |
+
+同名环境变量优先级高于文件，便于临时覆盖。
+
 ## 界面怎么看
 
 从上到下只有四块，越靠上越重要：
 
 1. **结论条**：左边一句人话结论 + 补充标签 + 至多 3 条建议；右边三个大数字——对端 P50（真实体验）、出口 P50（网速基准）、网关 P50（内网底色）。看这三个数基本就够。
 2. **链路拓扑**：本机 → 路由器 → 互联网 → 对端，实线为主路径、虚线为备用中继弧线；每段标最近一次延迟，颜色按阈值变色，光点沿线路流动。
-
-   ![链路拓扑](docs/screenshots/dashboard.png)
 
 3. **延迟趋势**：默认只画两条线（对端 + 网关），出口与中继在图例里灰着，点一下才出现；底部色带显示逐次"直连 / 中继"。
 4. **折叠区**：「更多图表」（分布、抖动强度）、「全部明细」（逐条采样），默认收起。
@@ -80,8 +95,6 @@ make uninstall      # 卸载
 
 点右上角「长 ping 诊断」，同时向路由器、阿里 DNS、对端各发 40 个包（0.3 秒间隔，约 12 秒），给出发包 / 丢包 / 最小 / 平均 / 最大 / 抖动（stddev）并自动判定。
 
-![长 ping 诊断](docs/screenshots/long-ping.png)
-
 平均值会被单个尖峰拉高，所以判定同时看抖动——抖动能直接看出链路稳不稳。
 
 ## AI 分析（可选）
@@ -98,6 +111,8 @@ make uninstall      # 卸载
 出完可以继续追问，回答是流式的。
 
 ![AI 分析](docs/screenshots/ai-chat.png)
+
+> 本文所有截图均来自**合成演示数据**（`docs/screenshots` 里的地址为占位值），不含任何真实网络信息。
 
 > **隐私**：摘要会发到 DeepSeek 云端，包含延迟数字、设备名、内网 IP，不含任何流量内容。介意就别启用 AI 功能——其它功能完全离线。
 
@@ -121,6 +136,7 @@ tailscale-watch/
 │   ├── stop-panel.command   双击停止
 │   ├── install-launchd.sh   安装常驻服务
 │   └── uninstall-launchd.sh 卸载
+├── config.env.example      配置模板（复制为 config.env）
 ├── netcheck-watch.sh        采样器（--once / --daemon / --bg / --stop）
 ├── netcheck-report.py       中文命令行报表（--today / --tail N）
 ├── Makefile

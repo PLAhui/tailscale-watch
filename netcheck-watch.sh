@@ -11,8 +11,10 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG="$DIR/netcheck-log.csv"
 PIDFILE="$DIR/.watch.pid"
 TS="/Applications/Tailscale.app/Contents/MacOS/tailscale"
-ALI_DNS="223.5.5.5"
-MACMINI_IP="100.116.122.19"
+# 读取本机配置（config.env 不入库，见 config.env.example）
+[ -f "$DIR/config.env" ] && . "$DIR/config.env"
+MACMINI_IP="${PEER_HOST:-}"          # 对端 Tailscale 地址，留空则这一列记空
+ALI_DNS="${ALI_HOST:-223.5.5.5}"
 INTERVAL="${INTERVAL:-60}"
 PING_COUNT="${PING_COUNT:-10}"
 
@@ -61,7 +63,11 @@ sample() {
 
   # 2) 三段 ping：国内基准 / 对端 / 路由器
   ali=$(ping -c "$PING_COUNT" -i 0.2 -t 5 "$ALI_DNS" 2>/dev/null)
-  mm=$(ping -c "$PING_COUNT" -i 0.2 -t 5 "$MACMINI_IP" 2>/dev/null)
+  if [ -n "$MACMINI_IP" ]; then
+    mm=$(ping -c "$PING_COUNT" -i 0.2 -t 5 "$MACMINI_IP" 2>/dev/null)
+  else
+    mm=""
+  fi
   gw_ip=$(gateway_ip)
   if [ -n "${gw_ip:-}" ]; then
     gw=$(ping -c 5 -i 0.2 -t 3 "$gw_ip" 2>/dev/null)

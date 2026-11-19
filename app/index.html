@@ -273,7 +273,7 @@
     </div>
     <div class="hero2-right">
       <div class="hs-row">
-        <div class="hs"><em>到 mac-mini · 真实体验</em><b id="k-mm">—</b><u>ms · P50</u>
+        <div class="hs"><em>到对端 · 真实体验</em><b id="k-mm">—</b><u>ms · P50</u>
           <i>均 <span id="k-mm-avg">—</span> · P95 <span id="k-mm-p95">—</span> · 峰 <span id="k-mm-peak">—</span></i></div>
         <div class="hs"><em>出口 · 阿里 DNS</em><b id="k-ali">—</b><u>ms · P50</u>
           <i>均 <span id="k-ali-avg">—</span> · P95 <span id="k-ali-p95">—</span> · 峰 <span id="k-ali-peak">—</span></i></div>
@@ -304,10 +304,10 @@
   </div>
 
   <details class="card panel fold" style="margin-bottom:16px">
-    <summary>更多图表<span>mac-mini 分布 · 抖动强度</span></summary>
+    <summary>更多图表<span>对端分布 · 抖动强度</span></summary>
     <div class="fold-grid">
       <div>
-        <div class="panel-head"><h2>mac-mini 分布</h2><span>样本次数</span></div>
+        <div class="panel-head"><h2>对端分布</h2><span>样本次数</span></div>
         <div id="dist" class="mini-chart"></div>
       </div>
       <div>
@@ -492,8 +492,8 @@ function drawMain(rows){
     backgroundColor:'transparent',
     grid:{left:52, right:56, top:42, bottom:34},
     legend:{top:6, right:8, itemWidth:13, itemHeight:7, itemGap:14,
-            data:['网关','阿里 DNS','mac-mini','中继最快'],
-            selected:{'网关':true,'阿里 DNS':false,'mac-mini':true,'中继最快':false},
+            data:['网关','阿里 DNS','对端','中继最快'],
+            selected:{'网关':true,'阿里 DNS':false,'对端':true,'中继最快':false},
             textStyle:{color:axisInk(), fontSize:11.5}},
     tooltip:{trigger:'axis', backgroundColor:isDark()?'#1b222c':'#fff', borderColor:isDark()?'#2b3542':'#e4e9f0',
              textStyle:{color:isDark()?'#e8edf4':'#10161d', fontSize:12},
@@ -508,7 +508,7 @@ function drawMain(rows){
     series:[
       Object.assign(mk('网关', 'gateway_avg', COLORS.gw), {markLine:rule(5, '#cfd7e2')}),
       Object.assign(mk('阿里 DNS', 'ali_avg', COLORS.ali), {markLine:rule(40, 'rgba(47,111,237,.45)')}),
-      mk('mac-mini', 'macmini_avg', COLORS.mm, true),
+      mk('对端', 'macmini_avg', COLORS.mm, true),
       {
         type:'effectScatter', showSymbol:true, symbolSize:5, z:5, silent:true,
         rippleEffect:{period:3.5, scale:3.5, brushType:'stroke'},
@@ -670,7 +670,7 @@ function renderTopo(s, last){
   const gwKey = lv(gwNow, 5, 10), derpKey = lv(derpNow, 150, 250);
   const aliC = C[aliKey], mmC = C[mmKey], gwC = C[gwKey], derpC = C[derpKey];
 
-  const gwIp = (last && last.gateway_ip) || '192.168.66.1';
+  const gwIp = (last && last.gateway_ip) || '—';
 
   const html = `
   <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
@@ -680,12 +680,12 @@ function renderTopo(s, last){
               orient="auto"><path d="M0 0L10 5L0 10z" fill="${C[k]}"/></marker>`).join('')}
     </defs>
 
-    <!-- 主路径：本机 → 路由器 → 互联网 → mac-mini -->
+    <!-- 主路径：本机 → 路由器 → 互联网 → 对端 -->
     ${line(X[0] + R, X[1] - R, gwKey, true)}
     ${line(X[1] + R, X[2] - R, aliKey, true)}
     ${line(X[2] + R, X[3] - R, directNow ? mmKey : 'mute', directNow)}
 
-    <!-- 备用通道：互联网 ⇢ 中继 ⇢ mac-mini -->
+    <!-- 备用通道：互联网 ⇢ 中继 ⇢ 对端 -->
     <path d="M ${X[2] + 8} ${Y - R + 4} Q ${(X[2] + relayX) / 2} ${relayY + 6}, ${relayX - R} ${relayY}"
           fill="none" stroke="${derpC}" stroke-width="${directNow ? 1.4 : 2.6}"
           stroke-dasharray="${directNow ? '6 5' : '9 6'}" opacity="${directNow ? .55 : .95}" stroke-linecap="round"/>
@@ -707,11 +707,11 @@ function renderTopo(s, last){
 
     <circle id="ringA" cx="${X[0]}" cy="${Y}" r="${R}" fill="none"
             stroke="${C.ok}" stroke-width="1.5" opacity=".55"/>
-    ${node(X[0], Y, 'M', '本机', 'macbook-pro', true)}
+    ${node(X[0], Y, 'M', '本机', s.self_name || '', true)}
     ${node(X[1], Y, 'R', '路由器', gwIp, false)}
     ${node(X[2], Y, 'N', '互联网', '国内出口', false)}
     <circle id="ringB" cx="${X[3]}" cy="${Y}" r="${R}" fill="none" stroke="${mmC}" stroke-width="1.5" opacity=".55"/>
-    ${node(X[3], Y, 'm', 'mac-mini', '100.116.122.19', false)}
+    ${node(X[3], Y, 'm', s.peer_name || '对端', s.peer_host || '', false)}
     ${node(relayX, relayY, 'D', '中继 · ' + region(L.nearest_derp || s.derp_region), (directNow ? '备用通道' : '正在使用'), false)}
 
     <text class="t-legend" x="${X[0] - R}" y="${H - 10}">

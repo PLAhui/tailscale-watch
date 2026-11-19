@@ -5,6 +5,9 @@ ai-analysis.md
 .panel-port
 var/
 
+# ---- 本机配置（真实对端地址/网关，只提交 config.env.example） ----
+config.env
+
 # ---- 密钥与凭据 ----
 app/.deepseek_key
 app/.deepseek_model

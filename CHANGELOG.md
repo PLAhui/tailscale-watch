@@ -5,12 +5,14 @@
 ## [Unreleased]
 
 ### Added
+- `config.env.example`：对端地址/显示名/基准目标外置到本地配置，仓库不含任何真实网络信息
 - `scripts/install-launchd.sh` / `uninstall-launchd.sh`，用 `__PROJECT_DIR__` 占位符渲染 plist，仓库可移植
 - `Makefile`（`make run` / `make install` / `make check` / `make report`）
 - `docs/DEVELOPMENT.md`：可复刻整套系统的开发提示词（含阈值口径与踩坑清单）
 - `CONTRIBUTING.md`、`LICENSE`（MIT）、`.gitignore`
 
 ### Changed
+- 拓扑/结论文案/长 ping 目标/AI 摘要全部改为读 `config.env`，不再硬编码设备名与地址
 - 目录开源化重排：`docs/` `scripts/` `launchd/`，截图移入 `docs/screenshots/`
 - launchd label 统一为 `io.github.tailscale-watch.{agent,panel}`
 - 面板默认端口统一为 8767（可用 `PANEL_PORT` 覆盖）
